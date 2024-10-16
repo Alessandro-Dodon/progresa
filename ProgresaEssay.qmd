@@ -1,0 +1,762 @@
+---
+title: "The Progresa Effect: Analyzing Shifts in Educational Enrollment in Mexico"
+author: "Alessandro Dodon, Fabio Grazia, Marta De Robles Eyaralar"
+format:
+  html:
+    self-contained: true
+    code-fold: true
+editor: visual
+knitr:
+  opts_chunk:
+    echo: true  # Ensure R code is shown
+    warning: false  # Suppress warnings in output
+    message: false  # Suppress messages in output
+    fig.align: "center"  # Center figures in output
+---
+
+```{=html}
+<style>
+body {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+  margin: 1in;
+}
+h1, h2, h3, h4 {
+  font-family: Arial, Helvetica, sans-serif;
+}
+.code, pre {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 10pt;
+}
+.math-display, .MathJax_Display, .katex-display {
+  display: block;
+  margin: auto;
+  text-align: center;
+  /* Adjust the vertical alignment as needed */
+  vertical-align: middle;
+}
+.mjx-chtml {
+  font-family: 'MathJax_Main', 'Times New Roman', Times, serif !important;
+}
+</style>
+```
+
+------------------------------------------------------------------------
+
+## Introduction
+
+Progresa has been one of the major government programs undertaken by Mexico, aimed at developing the human capital of the country. The program targeted rural and poor households, covering approximately 2.6 million families in almost 50,000 localities and more than 2,000 municipalities. These beneficiaries comprised about 40% of all rural families, or one-ninth of all Mexican families and the budget was of about 777 millions, equal to 0.2 % of Mexico’s GDP. Communities were first selected based on a poverty index, and within those communities, specific households are selected through socio-economic data. The Progresa program consisted on delivering cash transfers to mothers, depending on their children’s school attendances and visits to healthcare centers. Investigating the program is crucial to determine if intentional government interventions more effectively develop human capital than isolated actions.
+
+Our study, an ex-post policy analysis reflecting the ongoing relevance of the topic, investigates Progresa's impact on children's school enrollment via regression analysis. By using methods such as simple differences, linear, multiple and logistic regressions, as well as IV and DiD our results consistently show a positive impact on enrollment rates.\
+We will first start by introducing our data, briefly explaining the methods, illustrate our results, and finally underline our major findings, limitations and technical details.\
+For each step, the codes will be shown in a "code-fold mode", so if the viewer is interested the calculations can be checked directly.
+
+## Data
+
+The dataset, in .dta format, comprises over 35,000 observations across 24 variables, crucial for our study are:
+
+-   **hogid**: Household ID.
+
+-   **iid**: Individual ID.
+
+-   **year**: Survey years (1997-assignment, 1998-intervention start, 1999-follow-up).
+
+-   **age_ind**: Individual's age.
+
+-   **enroll_child**: School enrollment (1 = yes, 0 = no).
+
+-   **villid**: Village ID.
+
+-   **yycali**: Poverty index for program eligibility.
+
+-   **sex**: Gender (1 = male, 0 = female).
+
+-   **ageHH, sexHH, eduHH**: Age, gender, and education level of household head, respectively.
+
+-   **D**: Village treatment status (1 = treated, 0 = control).
+
+-   **pov_HH**: Household poverty status (1 = poor, 0 = not poor).
+
+-   **D_HH**: Household's program participation (1 = yes, 0 = no).
+
+-   **D_assig**: Village assignment to treatment or control.
+
+-   **D_HH_assig**: Household treatment assignment in 1997, created for DiD analysis (will be better explained later).
+
+After a basic explanation of our dataset, we begin with some descriptive statistics.
+
+```{r}
+# Loading Data and Libraries
+# Suppress warnings and messages
+suppressWarnings(suppressMessages({
+  
+  # Load necessary libraries quietly
+  library(haven)
+  library(dplyr)
+  library(tidyr)
+  library(lmtest)
+  library(ggplot2)
+  library(estimatr)
+  library(kableExtra)
+  library(modelsummary)
+}))
+
+# Load the .dta file (CHANGE THIS PATH IF YOU WANT TO TRY THE CALCULATIONS FOR YOURSELF)
+file_path <- "/Users/aledo/Desktop/Unibo/DSPA PROJECT/NEW PROJECT/dataset_per_essay/Progresa.dta"
+
+# Read the .dta file into an R data frame
+dataset <- read_dta(file_path)
+
+################################################################################
+# Part 1 Descriptive Analysis
+# Understanding the dataset better via classic functions
+#head(dataset)
+
+#summary(dataset)
+
+#str(dataset)
+
+#dim(dataset)
+
+#sum(is.na(dataset))
+
+#sapply(dataset, function(x) length(unique(x)))
+
+# Histograms
+hist(dataset$age_ind)
+hist(dataset$eduHH)
+hist(dataset$ageHH)
+hist(dataset$yycali)
+```
+
+To continue with the descriptive statistics segment, a simple table with Kable has been created. This shows for each variable of interest value, standard deviation and missing values.
+
+```{r}
+# Summary Statistics 
+# Select only the specified variables for analysis
+selected_dataset <- select(dataset, age_ind, yycali, ageHH, eduHH, enroll_child, sex, lang, sexHH, D, pov_HH, D_HH, D_assig)
+
+# Define the summary statistics function
+summary_stats <- function(data) {
+  summary_df <- data.frame(Variable = character(), Mean = numeric(), SD = numeric(), Missing_Values = integer())
+  
+  for (var in names(data)) {
+    mean_val <- mean(data[[var]], na.rm = TRUE)
+    sd_val <- sd(data[[var]], na.rm = TRUE)
+    missing_val <- sum(is.na(data[[var]]))
+    
+    summary_df <- rbind(summary_df, data.frame(Variable = var, Mean = mean_val, SD = sd_val, Missing_Values = missing_val))
+  }
+  
+  summary_df$Mean <- round(summary_df$Mean, 2)
+  summary_df$SD <- round(summary_df$SD, 2)
+  
+  return(summary_df)
+}
+
+# Apply the function to the selected dataset
+summary_table_selected <- summary_stats(selected_dataset)
+
+# Use kable to print the summary table
+kable(summary_table_selected, caption = "Summary Statistics of Selected Variables", format = "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+To verify the effectiveness of randomization we compared treatment and control group for year 1997 filtering for poor households and using D_assig.
+
+```{r}
+# Differences at Baseline (Eligible vs Non Eligible Group in 1997 for poor households)
+# Filter the dataset for year 1997 and poor households 
+# We will use D_assig for 1997
+dataset_1997_poor <- dataset %>% 
+  filter(year == 1997 & pov_HH == 1)
+
+# Define Variables of Interest
+variables_of_interest <- c("age_ind", "yycali", "ageHH", "eduHH", "age", 
+                           "enroll_child", "sex", "lang", "sexHH")
+
+# Initialize Results Data Frame
+results_df <- data.frame(Variable = character(), Mean_Assigned = numeric(), Mean_NotAssigned = numeric(),
+                         Mean_Difference = numeric(), T_Statistic = numeric(), P_Value = numeric(), stringsAsFactors = FALSE)
+
+# Loop Through Variables
+for (var in variables_of_interest) {
+  if (is.numeric(dataset_1997_poor[[var]])) {
+    mean_assigned <- round(mean(dataset_1997_poor %>% filter(D_assig == 1) %>% pull(var), na.rm = TRUE), 2)
+    mean_notAssigned <- round(mean(dataset_1997_poor %>% filter(D_assig == 0) %>% pull(var), na.rm = TRUE), 2)
+    
+    t_test <- tryCatch({
+      t.test(as.formula(paste(var, "~ D_assig")), data = dataset_1997_poor)
+    }, error = function(e) {
+      list(statistic = NA, p.value = NA)
+    })
+    
+    mean_difference <- round(mean_assigned - mean_notAssigned, 2)
+    
+    t_statistic_rounded <- ifelse(is.na(t_test$statistic), NA, round(t_test$statistic, 2))
+    p_value_rounded <- ifelse(is.na(t_test$p.value), NA, round(t_test$p.value, 2))
+    
+    results_df <- rbind(results_df, data.frame(Variable = var, Mean_Assigned = mean_assigned, 
+                                               Mean_NotAssigned = mean_notAssigned, Mean_Difference = mean_difference,
+                                               T_Statistic = t_statistic_rounded, 
+                                               P_Value = p_value_rounded))
+  }
+}
+
+# Display Results with rounded numbers and no row names
+kable(results_df, caption = "Differences at Baseline Between Eligible and Non-Eligible Groups in 1997", 
+      format = "html", row.names = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+We then verified the presence of compliance issues. The results show a very significant drop-out rate in 1998 and even more in 1999.
+
+```{r}
+# Program Compliance at Household level
+# Step 1: Filter for households assigned to treatment in 1997
+assigned_households <- dataset %>%
+  filter(year == 1997 & D_assig == 1) %>%
+  select(hogid) %>%
+  distinct()
+
+# Total households assigned to treatment in 1997
+total_assigned <- nrow(assigned_households)
+
+# Step 2: Check their participation status in 1998 and 1999
+participation_status <- dataset %>%
+  filter(hogid %in% assigned_households$hogid & year %in% c(1998, 1999)) %>%
+  select(hogid, year, D_assig, D_HH) %>%
+  distinct()
+
+# Calculate compliance for each household by year
+compliance_by_household <- participation_status %>%
+  mutate(Compliant = ifelse(D_assig == 1 & D_HH == 1, 1, 0)) %>%
+  group_by(hogid) %>%
+  summarise(Compliance_1998 = sum(Compliant & year == 1998),
+            Compliance_1999 = sum(Compliant & year == 1999)) %>%
+  ungroup()
+
+# Calculate overall compliance and non-compliance rates
+compliance_summary <- compliance_by_household %>%
+  summarise(
+    Total_Compliance_1998 = sum(Compliance_1998 > 0, na.rm = TRUE),
+    Total_Compliance_1999 = sum(Compliance_1999 > 0, na.rm = TRUE),
+    Percentage_Compliance_1998 = round(Total_Compliance_1998 / total_assigned * 100, 2),
+    Percentage_Compliance_1999 = round(ifelse(is.na(Total_Compliance_1999), 0, Total_Compliance_1999 / total_assigned * 100), 2),
+    Percentage_Non_Compliance_1998 = round(100 - Percentage_Compliance_1998, 2),
+    Percentage_Non_Compliance_1999 = round(ifelse(is.na(Percentage_Compliance_1999), 100, 100 - Percentage_Compliance_1999), 2)
+  )
+
+# Displaying the compliance summary using kable, with rounded numbers
+kable(compliance_summary, caption = "Program Compliance at Household Level in 1998 and 1999", format = "html", row.names = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+## Methods
+
+As we have used multiple methods to better develop our analysis, and because of the word limitations, we are not able to provide a full description of each technique. However, we will underline their relevance to our research question. Conditioning and IV allowed us to tackle the problem of endogeneity, as we have noted imperfect compliance that may cause selection bias. This was first done by adding control variables in our regressions, and later by using the actual randomized assignment as an instrument, to estimate the unbiased effect of the program. As we are well aware of the limitations of linear models in social sciences, we added a logistic regression with control variables to our analysis. Because we are working with binary variables, this technique is likely the most adequate, and estimating its odds ratios allows us to understand the relationships between variables in terms of probability. Finally, our DID analysis allowed us to cancel out the observed and unobserved time-invariant characteristics.
+
+## Results
+
+In this segment, we estimated the ATE with the various methods. We always used the variable D_HH (household participation in the program) as treatment variable and examined its effects on children enrollment in school.
+
+We started by simply calculating the differences in enrollment rates between groups for each year and their statistical significance.
+
+Yet, potential selection bias necessitated further investigation through regression analysis.
+
+```{r}
+# Part 2 Measuring Impact 
+# Simple Differences 
+# Filter the dataset for the year 1998 and for poor households 
+#dataset_1998_poor <- filter(dataset, year == 1998 & pov_HH == 1)
+
+# Calculate the average enrollment rate for treatment and control groups
+#avg_enroll_treatment <- mean(dataset_1998_poor %>% filter(D_HH == 1) %>% pull(enroll_child), na.rm = TRUE)
+#avg_enroll_control <- mean(dataset_1998_poor %>% filter(D_HH == 0) %>% pull(enroll_child), na.rm = TRUE)
+
+# Perform a T-test to determine if the difference is statistically significant
+#t_test_results <- t.test(enroll_child ~ D_HH, data = dataset_1998_poor)
+
+# Print the average enrollment rates and T-test results
+#cat("Average enrollment rate in treatment villages (1998, poor households):", avg_enroll_treatment, "\n")
+#cat("Average enrollment rate in control villages (1998, poor households):", avg_enroll_control, "\n\n")
+#cat("T-test results:\n")
+#print(t_test_results)
+
+# Repeat the same for 1999
+# Filter the dataset for the year 1999 and for poor households
+#dataset_1999_poor <- filter(dataset, year == 1999 & pov_HH == 1)
+
+# Calculate the average enrollment rate for treatment and control groups
+#avg_enroll_treatment_1999 <- mean(dataset_1999_poor %>% filter(D_HH == 1) %>% pull(enroll_child), na.rm = TRUE)
+#avg_enroll_control_1999 <- mean(dataset_1999_poor %>% filter(D_HH == 0) %>% pull(enroll_child), na.rm = TRUE)
+
+# Perform a T-test to determine if the difference is statistically significant
+#t_test_results_1999 <- t.test(enroll_child ~ D_HH, data = dataset_1999_poor)
+
+# Print the average enrollment rates and T-test results for 1999
+#cat("Average enrollment rate in treatment villages (1999, poor households):", avg_enroll_treatment_1999, "\n")
+#cat("Average enrollment rate in control villages (1999, poor households):", avg_enroll_control_1999, "\n\n")
+#cat("T-test results for 1999:\n")
+#print(t_test_results_1999)
+
+# Preparing the data for the table with updated results
+results <- data.frame(
+  Year = c(1998, 1999),
+  `Avg Enrollment Treatment` = c(0.661157, 0.5399691),
+  `Avg Enrollment Control` = c(0.5840164, 0.4740586),
+  `T-Statistic` = c(-6.1816, -5.0785),
+  `P-Value` = c("6.849e-10", "3.941e-07"),
+  `95% CI Lower` = c(-0.10160502, -0.09135351),
+  `95% CI Upper` = c(-0.05267625, -0.04046745)
+)
+
+# Using kable to create the table with updated numbers
+kable(results, caption = "Impact Assessment: Average Enrollment Rates and T-test Results (1998 & 1999)", 
+      format = "html", digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  column_spec(1, bold = TRUE) %>%
+  column_spec(3:7, width = "6em")
+```
+
+We continued with a simple linear regression to verify the effect of D_HH on children enrollment for 1998.
+
+The coefficient for D_HH is 0.077, indicating that, all else being equal, the treatment group (on average) experiences an increase in the enrollment rate of 0.077 compared to the control group. This effect is statistically significant.
+
+The model's R squared indicates that the treatment variable explains only a small fraction of the variance in school enrollment rates among poor households. However, it reaches statistical significance (shown only in the R script).
+
+```{r}
+# Simple Regression 
+# Filter the dataset for the year 1998 and poor households 
+dataset_1998_poor <- filter(dataset, year == 1998 & pov_HH == 1)
+
+# Run the regression model for 1998
+regression_1998 <- lm(enroll_child ~ D_HH, data = dataset_1998_poor)
+
+# Display the regression summary with default settings, which include most stats
+modelsummary(regression_1998, output = "markdown")
+```
+
+In this next passage we controlled for different variables that could be relevant, found in our dataset, to isolate the pure effect of the treatment.
+
+The treatment variable showed a significant positive effect, with an estimated coefficient of 0.093, with a highly significant p-value.
+
+The control variables also showed significant effects.
+
+The model's R squared suggests that around 15.8% of the variation in enrollment rates is explained by the model, a considerable improvement from the simple regression model. The overall model is statistically significant.
+
+```{r}
+# Multiple Regression/ Conditioning
+# Run the regression model for 1998 with control variables 
+regression_1998_controls <- lm(enroll_child ~ D_HH + age_ind + sex + eduHH + yycali + lang, data = dataset_1998_poor)
+
+# Display the summary of the regression model for 1998 with control variables
+modelsummary(regression_1998_controls, output = "markdown")
+```
+
+The following passage outlines the results of a multiple logistic regression analysis conducted for the year 1998, aiming to assess the impact of a treatment D_HH, alongside other control variables.
+
+Key logistic regression findings:
+
+-   **Treatment Effect (D_HH)**: Treatment increases enrollment odds by 63% (coefficient: 0.488, odds ratio ≈ 1.63).
+
+-   **Age (age_ind)**: Each additional year decreases enrollment odds by 43% (coefficient: -0.561, odds ratio ≈ 0.57).
+
+-   **Sex**: Boys have 44% higher odds of enrollment than girls (coefficient: 0.364, odds ratio ≈ 1.44).
+
+-   **Language (lang)**: Speaking indigenous languages increases enrollment odds by 69% (coefficient: 0.523, odds ratio ≈ 1.69).
+
+```{r}
+# Multiple Logistic Regression/ Conditioning
+# Run the logistic regression model for 1998 with control variables 
+logistic_regression_1998_controls <- glm(enroll_child ~ D_HH + age_ind + sex + eduHH + yycali + lang, data = dataset_1998_poor, family = binomial)
+
+# Display the summary of the logistic regression model for 1998 with control variables
+modelsummary(logistic_regression_1998_controls, output = "markdown")
+```
+
+Subsequently, the analysis leveraged IV.
+
+A good potential IV is the randomized assignment to treatment, as being randomly assigned (represented by our D_assig variable) strongly determines the exposure to the treatment D_HH (is thus relevant), but has no effect on the outcome variable since it has been done randomly (thus also checking the exogeneity condition).\
+The IV regression, utilizing D_assig as an instrument for D in 1998, demonstrates a (comparable) significant effect of the treatment on school enrollment. This further reinforces our findings.
+
+```{r}
+# IV Regression Using estimatr Package for Robust Standard Errors
+# Robust IV regression for 1998 using D_assig as an instrument for D
+model_2sls_1998_robust <- iv_robust(
+  formula = enroll_child ~ D_HH | D_assig,
+  data = dataset_1998_poor
+)
+# Display the summary of the IV model for 1998
+modelsummary(model_2sls_1998_robust, output = "markdown")
+```
+
+Finally, the DiD was computed in two ways. Initially, in this step, in a manual way.\
+As this method doesn't allow to test for statistical significance, a regression is implemented later. Unfortunately, data before 1997 is not available here, so it is impossible to check for the parallel trend assumption, so our DiD methodology is not as rigorous. Nevertheless, the randomization between groups still allows us to believe that treatment and control group are comparable, so at least theoretically we are led to believe that the parallel trend assumption would hold. Before starting with the calculations we create a new variable called D_HH_assig, households that were assigned to treatment or control in 1997 (this step, as well as other technical details can be found with their respective explanation in the appendix).
+
+```{r}
+# Prepare the data for DiD
+# Step 1: Create a new variable 'D_HH_assig' and initially set it identical to D_HH
+dataset$D_HH_assig <- dataset$D_HH
+
+# Step 2: Optionally, set 'D_HH_assig' to NA for 1997 only
+dataset$D_HH_assig[dataset$year == 1997] <- NA
+
+# Step 3: Summarize the 1998 treatment status for each household
+treatment_status_1998 <- dataset %>%
+  filter(year == 1998) %>%
+  group_by(hogid) %>%
+  summarize(D_HH_1998 = max(D_HH), .groups = 'drop')  # Ensure 'D_HH_1998' is created for each 'hogid'
+
+# Verify the structure of 'treatment_status_1998'
+#print(head(treatment_status_1998))
+
+# Step 4: Merge the 1998 treatment status back to the dataset for 1997 entries
+dataset <- left_join(dataset, treatment_status_1998, by = "hogid")
+
+# Verify that 'D_HH_1998' is present after join
+#print(head(dataset))
+
+# Step 5: Use 'mutate' to assign the 1998 treatment status to 'D_HH_assig' for 1997 entries
+dataset <- dataset %>%
+  mutate(D_HH_assig = if_else(year == 1997, D_HH_1998, as.double(NA)))  # Use 'as.double(NA)' to ensure NA is treated as a numeric type
+
+# Optional: Verify the assignment was successful
+#print(head(dataset[dataset$year == 1997, ]))
+
+# Verify it worked correctly
+# Count the number of households with D_HH = 1 in 1998
+#count_1998_treated <- dataset %>%
+  #filter(year == 1998, D_HH == 1) %>%
+  #distinct(hogid) %>%
+  #nrow()
+
+#print(count_1998_treated)
+
+# Count the number of households with D_HH_assig = 1 for the year 1997
+#count_1997_assigned_treated <- dataset %>%
+  #filter(year == 1997, D_HH_assig == 1) %>%
+  #distinct(hogid) %>%
+  #nrow()
+
+#print(count_1997_assigned_treated)
+
+# Randomly selected 10 households with their respective ID and checked manually if D_HH for 1998 corresponded to D_HH_assig for 1997
+```
+
+```{r}
+# DiD Manual 
+# Filtering for poor households in 1997 and excluding rows with NAs in relevant variables
+#dataset_1997_poor <- filter(dataset, year == 1997 & pov_HH == 1 & !is.na(enroll_child) & !is.na(D_HH_assig))
+
+# Average enrollment rates for assigned treatment and control groups in 1997
+#avg_enroll_1997_assigned_treated <- mean(dataset_1997_poor$enroll_child[dataset_1997_poor$D_HH_assig == 1], na.rm = TRUE)
+#avg_enroll_1997_assigned_control <- mean(dataset_1997_poor$enroll_child[dataset_1997_poor$D_HH_assig == 0], na.rm = TRUE)
+
+# Filtering for poor households in 1998 and excluding rows with NAs in relevant variables
+#dataset_1998_poor <- filter(dataset, year == 1998 & pov_HH == 1 & !is.na(enroll_child) & !is.na(D_HH))
+
+# Average enrollment rates for treated and control groups in 1998
+#avg_enroll_1998_treated <- mean(dataset_1998_poor$enroll_child[dataset_1998_poor$D_HH == 1], na.rm = TRUE)
+#avg_enroll_1998_control <- mean(dataset_1998_poor$enroll_child[dataset_1998_poor$D_HH == 0], na.rm = TRUE)
+
+# Calculating the differences in average enrollment rates from 1997 to 1998
+#diff_treated <- avg_enroll_1998_treated - avg_enroll_1997_assigned_treated
+#diff_control <- avg_enroll_1998_control - avg_enroll_1997_assigned_control
+
+# Calculate the Difference-in-Differences estimate
+#DiD_estimate <- diff_treated - diff_control
+
+# Output the results
+#cat("Difference in average enrollment rate (1997 to 1998) for treated households:", diff_treated, "\n")
+#cat("Difference in average enrollment rate (1997 to 1998) for control households:", diff_control, "\n")
+#cat("Difference-in-Differences estimate:", DiD_estimate, "\n")
+
+# Organize the updated results into a data frame
+DiD_results <- data.frame(
+  Metric = c("Difference in average enrollment rate (1997 to 1998) for treated households", 
+             "Difference in average enrollment rate (1997 to 1998) for control households",
+             "Difference-in-Differences estimate"),
+  Value = c(0.003960451, -0.06799578, 0.07195623)  
+)
+
+# Use kable to create the table with updated numbers, rounding values to three decimal places where applicable
+kable(DiD_results, col.names = c("Metric", "Value"), caption = "Difference-in-Differences Analysis Results", format = "html", digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  column_spec(2, width = "6em")
+```
+
+Lastly we displayed our DiD regression in table format.\
+We still find a positive effect of the treatment on the enrollment status of children, which is statistically significant as indicated by the interaction term and its respective p value.
+
+Specifically, the coefficient of approximately 0.092 for the interaction term (D_new × T) implies that the treatment's effect on increasing enrollment rates, after adjusting for other factors, is significant and in line with the manual DiD analysis.
+
+The regression also highlights other determinants of enrollment as before.
+
+```{r}
+# DiD Regression/Conditioning
+# For 1997, use D_HH_assig as the treatment indicator and mark the year as T=0
+dataset_1997_poor <- filter(dataset, year == 1997 & pov_HH == 1 & !is.na(enroll_child) & !is.na(D_HH_assig)) %>%
+  mutate(T = 0, D_new = D_HH_assig)
+
+# For 1998, use D_HH as the treatment indicator and mark the year as T=1
+dataset_1998_poor <- filter(dataset, year == 1998 & pov_HH == 1 & !is.na(enroll_child) & !is.na(D_HH)) %>%
+  mutate(T = 1, D_new = D_HH)
+
+# Combine the datasets for 1997 and 1998
+dataset_combined <- bind_rows(dataset_1997_poor, dataset_1998_poor)
+
+# Run the DiD regression using the updated treatment and time variables, along with control variables
+DiD_regression_model <- lm(enroll_child ~ D_new + T + D_new:T + age_ind + sex + eduHH + yycali + lang, data = dataset_combined)
+
+# Display the summary of the regression model
+modelsummary(DiD_regression_model, output = "markdown")
+```
+
+## Conclusion
+
+Our regression analysis has consistently demonstrated a positive impact of the Progresa program on children enrollment rates, as indicated by D_HH, which represents household-level participation. For the year 1998, our findings are summarized as follows:
+
+-   A simple comparison between treatment and control groups revealed an average increase in school enrollment of 0.077.
+
+-   Our basic linear regression supports this finding, showing a comparable effect.
+
+-   Incorporating control variables enhances the model, increasing the effect to 0.093, with all variables proving statistically significant.
+
+-   Logistic regression analysis indicates the treatment group experiences a 63% increase in the odds of enrollment.
+
+-   Our IV regression strengthens our results, providing a similar unbiased estimation of the program's effect.
+
+-   The DiD regression with control variables further solidifies our findings, showing an increase in enrollment rate of 0.092.
+
+All of those models and results are statistically significant, suggesting substantial policy implications for educational interventions. Future studies may explore long-term impacts on educational attainment and labor market outcomes, and investigate the mechanisms through which it operates to inform policy design and implementation.
+
+Despite those positive results, we are aware of potential limitations of our analysis. Namely, the high drop-out rate, lack of qualitative insights, and limitations in data availability, which did not allow us to test the parallel trend assumption and forced us to create a new variable to complete the DiD calculations.\
+Additionally, the simplicity of our linear models, as evidenced by consistently low R-squared values, suggests that these may not fully capture the complexity of the phenomena under study, reducing the overall rigor of our methodologies.
+
+## Appendix
+
+As the methods and results have been briefly described before, we will use this segment to explain some more "technical" details and how most of out calculations were executed. This way, the interested viewer can view and understand each passage. The codes are also shown as before with the "code-fold" mode, so all it is needed is just a click on the respective button. Because of this reason, each time the "how" will not be stressed so much (as just looking at the codes can reveal that), but the why.
+
+Starting with the data itself, we initially wanted to verify the randomized assignment to each group with a direct comparison. We compared the two groups across several important variables, calculated the means and respective differences, and only two exhibit a statistically significant difference. Those are "ageHH" (age of household head) and lang (language indigenous or not). Even though, as indicated by the p-values and t-statistic the difference is significant, this absolute values is actually very small. Because of this reason, to simplify the following calculations, we chose to ignore those results.\
+As for each other step we are explaining in this appendix, we are giving the code chunk obscured with \# so that the viewer does not have to scroll upwards and come back to possibly verify the calculations.\
+Also, education of the household head may be estimated with a formula that we are unaware of, as it can be seen from its odd values. Despite this limitation, we decided to keep this variable in our analysis.\
+In terms of data cleaning, no major changes were made to the original dataset beside simply removing the missing values when it was appropriate. Some passages of filtering and creating new dataframes were executed for particular operations (like creating dataframes for year 1998 which was our main object of analysis).
+
+```{r}
+# Differences at Baseline (Eligible vs Non Eligible Group in 1997 for poor households)
+# Filter the dataset for year 1997 and poor households 
+# We will use D_assig for 1997
+#dataset_1997_poor <- dataset %>% 
+  #filter(year == 1997 & pov_HH == 1)
+
+# Define Variables of Interest
+#variables_of_interest <- c("age_ind", "yycali", "ageHH", "eduHH", "age", 
+                           #"enroll_child", "sex", "lang", "sexHH")
+
+# Initialize Results Data Frame
+#results_df <- data.frame(Variable = character(), Mean_Assigned = numeric(), Mean_NotAssigned = numeric(),
+                         #Mean_Difference = numeric(), T_Statistic = numeric(), P_Value = numeric(), stringsAsFactors = FALSE)
+
+# Loop Through Variables
+#for (var in variables_of_interest) {
+  #if (is.numeric(dataset_1997_poor[[var]])) {
+    #mean_assigned <- round(mean(dataset_1997_poor %>% filter(D_assig == 1) %>% pull(var), na.rm = TRUE), 2)
+    #mean_notAssigned <- round(mean(dataset_1997_poor %>% filter(D_assig == 0) %>% pull(var), na.rm = TRUE), 2)
+    
+    #t_test <- tryCatch({
+      #t.test(as.formula(paste(var, "~ D_assig")), data = dataset_1997_poor)
+    #}, error = function(e) {
+      #list(statistic = NA, p.value = NA)
+    #})
+    
+    #mean_difference <- round(mean_assigned - mean_notAssigned, 2)
+    
+    #t_statistic_rounded <- ifelse(is.na(t_test$statistic), NA, round(t_test$statistic, 2))
+    #p_value_rounded <- ifelse(is.na(t_test$p.value), NA, round(t_test$p.value, 2))
+    
+    #results_df <- rbind(results_df, data.frame(Variable = var, Mean_Assigned = mean_assigned, 
+                                               #Mean_NotAssigned = mean_notAssigned, Mean_Difference = mean_difference,
+                                               #T_Statistic = t_statistic_rounded, 
+                                               #P_Value = p_value_rounded))
+  #}
+#}
+
+# Display Results with rounded numbers and no row names
+#kable(results_df, caption = "Differences at Baseline Between Eligible and Non-Eligible Groups in 1997", 
+      #format = "html", row.names = FALSE) %>%
+  #kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+We then estimated the compliance at the household and village level (the latter can only be found in the R script, but we can anticipate that it was perfect for 1998 and over 98% in 1999). The passages at the household level can be seen in the code chunk that follows. We primarily assess the compliance of households assigned to a treatment program in 1997, checking if they participated as expected in 1998 and 1999. We calculate the total number of assigned households, determines their participation status in the following years, and then computes compliance rates for each year. Finally, we summarize and display these rates to evaluate the program's effectiveness at ensuring household participation.
+
+```{r}
+# Program Compliance at Household level
+# Step 1: Filter for households assigned to treatment in 1997
+#assigned_households <- dataset %>%
+  #filter(year == 1997 & D_assig == 1) %>%
+  #select(hogid) %>%
+  #distinct()
+
+# Total households assigned to treatment in 1997
+#total_assigned <- nrow(assigned_households)
+
+# Step 2: Check their participation status in 1998 and 1999
+#participation_status <- dataset %>%
+  #filter(hogid %in% assigned_households$hogid & year %in% c(1998, 1999)) %>%
+  #select(hogid, year, D_assig, D_HH) %>%
+  #distinct()
+
+# Calculate compliance for each household by year
+#compliance_by_household <- participation_status %>%
+  #mutate(Compliant = ifelse(D_assig == 1 & D_HH == 1, 1, 0)) %>%
+  #group_by(hogid) %>%
+  #summarise(Compliance_1998 = sum(Compliant & year == 1998),
+            #Compliance_1999 = sum(Compliant & year == 1999)) %>%
+  #ungroup()
+
+# Calculate overall compliance and non-compliance rates
+#compliance_summary <- compliance_by_household %>%
+  #summarise(
+    #Total_Compliance_1998 = sum(Compliance_1998 > 0, na.rm = TRUE),
+    #Total_Compliance_1999 = sum(Compliance_1999 > 0, na.rm = TRUE),
+    #Percentage_Compliance_1998 = round(Total_Compliance_1998 / total_assigned * 100, 2),
+    #Percentage_Compliance_1999 = round(ifelse(is.na(Total_Compliance_1999), 0, Total_Compliance_1999 / total_assigned * 100), 2),
+    #Percentage_Non_Compliance_1998 = round(100 - Percentage_Compliance_1998, 2),
+    #Percentage_Non_Compliance_1999 = round(ifelse(is.na(Percentage_Compliance_1999), 100, 100 - Percentage_Compliance_1999), 2)
+  #)
+
+# Displaying the compliance summary using kable, with rounded numbers
+#kable(compliance_summary, caption = "Program Compliance at Household Level in 1998 and 1999", format = "html", row.names = FALSE) %>%
+  #kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+We double check the correctness of our results manually with the following code chunk, counting each unique household that in 1997 was assigned to the treatment, and seeing if the percentages and the results of the previous table are correct.
+
+```{r}
+# Double manual check
+# Total households assigned to treatment in 1997, ensuring uniqueness by hogid
+#total_assigned_1997 <- dataset %>%
+  #filter(year == 1997 & D_assig == 1) %>%
+  #select(hogid) %>%
+  #distinct() %>%
+  #nrow()
+#print(paste("Total households assigned to treatment in 1997:", total_assigned_1997))
+
+# Total unique households in the dataset for years 1997, 1998, and 1999, reinforced by distinct hogid
+#total_households <- dataset %>%
+  #filter(year %in% c(1997, 1998, 1999)) %>%
+  #select(hogid) %>%
+  #distinct() %>%
+  #nrow()
+#print(paste("Total unique households in 1997, 1998, and 1999:", total_households))
+```
+
+Continuing with our results, in our analysis we specifically focused on impoverished households (indeed the condition pov_HH = 1 can be seen often, particularly when creating dataframes) to directly assess the program’s impact on this target group. This approach aligns with Progresa's aim of supporting poor families and allows for a precise evaluation of its effectiveness in improving educational outcomes for children in these households.\
+\
+Additionally, in the dataset we had different treatment variables. Particularly, D was treatment at the village level, D_assig was assignment to treatment or control in 1997 at the village level, and then we had the actual treatment D_HH at the household level. What is particular in our case is that D and D_assig are exactly identical for year 1998, despite the fact that many households that were located in a treated village did not actually participate in the program.\
+Because of this we had to make a choice, either using D to estimate the ITT (intention to treat) or to use D_HH to estimate the TOT (treatment on the treated). We chose the latter, taking in consideration the significant drop-out rate and somewhat addressing it with the IV.\
+When working with binary variables, the interpretation of results from linear regression models is not straightforward. The standard definition in econometrics is that a basic linear regression coefficient represents the estimated change in the dependent variable for a one-unit change in an independent variable, holding all other independent variables constant. So, again, in the context of a simple linear regression model, which can be represented by the classic equation:\
+$$
+Y = \beta_0 + \beta_1X + \epsilon
+$$
+
+The coefficient β1 quantifies the expected change in the outcome variable Y for a one-unit increase in the predictor variable X.\
+Indeed, with linear models, we are not capable of expressing our results in a probabilistic way, thus interpreting a coefficient in terms of increase or decrease of % probability in school enrollment would be incorrect. The appropriate interpretation would be that, according to that particular regression, the treatment group experiences, on average, an increase of XYZ points in school enrollment compared to the control group, all other things being equal.\
+Also, linear regression models applied to binary variables can produce predicted values outside the meaningful range of 0 to 1, and violate key model assumptions such as the continuity of the dependent variable, leading to potential issues with heteroskedasticity and invalid standard errors. Because of this we added a logistic regression.\
+Only with our logistic regression, when estimating the odds (by calculating the exponential), we can express an increase or decrease in probability of school enrollment.\
+Here, in addition, is a brief list of our regression formulas (respectively those are the linear, multivariate, logistic and DiD):
+
+$$
+\text{enroll\_child} = \beta_0 + \beta_1(\text{D\_HH}) + \epsilon
+$$
+
+$$
+\text{enroll\_child} = \beta_0 + \beta_1(\text{D\_HH}) + \beta_2(\text{age\_ind}) + \beta_3(\text{sex}) + \beta_4(\text{eduHH}) + \beta_5(\text{yycali}) + \beta_6(\text{lang}) + \epsilon
+$$
+
+$$
+\log\left(\frac{P(\text{enroll\_child} = 1)}{1 - P(\text{enroll\_child} = 1)}\right) = \beta_0 + \beta_1(\text{D\_HH}) + \beta_2(\text{age\_ind}) + \beta_3(\text{sex}) + \beta_4(\text{eduHH}) + \beta_5(\text{yycali}) + \beta_6(\text{lang})
+$$ $$
+\text{enroll\_child} = \beta_0 + \beta_1(\text{D\_new}) + \beta_2(T) + \beta_3(\text{D\_new}:T) + \beta_4(\text{age\_ind}) + \beta_5(\text{sex}) + \beta_6(\text{eduHH}) + \beta_7(\text{yycali}) + \beta_8(\text{lang}) + \epsilon
+$$
+
+We have experimented with each method a great deal, and for avoiding redundancy some passages (like the results for year 1999) can be found in the R script. The tables for the regressions in this HTML also don't show some details like statistical significance and respective p-values of the models themselves (again can be found in the R script), however they were always mentioned. For the constructions of some tables we also obscured some passages in their respective code chunk with the use of #, even though the viewer may still understand the calculations behind (and can always verify them with the R script), and simply created the tables at the end with the results.
+
+Obviously the R script will have some minor differences compared to the quarto file, but each passage (and more) can still be found there.\
+For the DiD analysis also we had to construct a new variable, called D_HH_assig, as D_assig was available only at the village level. Using this could have been problematic because of the drop-out rate, many households did not actually participated in Progresa even though their respective village was signed as treated.\
+The way we coped with the problem was with the creation of D_HH_assig in year 1997, which was identical to D_HH of the respective household in year 1998 (assuming each household that was treated was also assigned to the treatment).\
+The steps are shown in this next code chunk, and can also be found in the R script.\
+Again, at the end we manually verified by randomly selecting 10 households and verifying the dataset structure to make sure that the procedure was correct.
+
+```{r}
+# Prepare the data for DiD
+# Step 1: Create a new variable 'D_HH_assig' and initially set it identical to D_HH
+#dataset$D_HH_assig <- dataset$D_HH
+
+# Step 2: Optionally, set 'D_HH_assig' to NA for 1997 only
+#dataset$D_HH_assig[dataset$year == 1997] <- NA
+
+# Step 3: Summarize the 1998 treatment status for each household
+#treatment_status_1998 <- dataset %>%
+  #filter(year == 1998) %>%
+  #group_by(hogid) %>%
+  #summarize(D_HH_1998 = max(D_HH), .groups = 'drop')  # Ensure 'D_HH_1998' is created for each 'hogid'
+
+# Verify the structure of 'treatment_status_1998'
+#print(head(treatment_status_1998))
+
+# Step 4: Merge the 1998 treatment status back to the dataset for 1997 entries
+#dataset <- left_join(dataset, treatment_status_1998, by = "hogid")
+
+# Verify that 'D_HH_1998' is present after join
+#print(head(dataset))
+
+# Step 5: Use 'mutate' to assign the 1998 treatment status to 'D_HH_assig' for 1997 entries
+#dataset <- dataset %>%
+  #mutate(D_HH_assig = if_else(year == 1997, D_HH_1998, as.double(NA)))  # Use 'as.double(NA)' to ensure NA is treated as a numeric type
+
+# Optional: Verify the assignment was successful
+#print(head(dataset[dataset$year == 1997, ]))
+
+# Verify it worked correctly
+# Count the number of households with D_HH = 1 in 1998
+#count_1998_treated <- dataset %>%
+  #filter(year == 1998, D_HH == 1) %>%
+  #distinct(hogid) %>%
+  #nrow()
+
+#print(count_1998_treated)
+
+# Count the number of households with D_HH_assig = 1 for the year 1997
+#count_1997_assigned_treated <- dataset %>%
+  #filter(year == 1997, D_HH_assig == 1) %>%
+  #distinct(hogid) %>%
+  #nrow()
+
+#print(count_1997_assigned_treated)
+
+# Randomly selected 10 households with their respective ID and checked manually if D_HH for 1998 corresponded to D_HH_assig for 1997
+```
+
+The word count for our essay (not counting the titles, codes, tables, graphs and appendix) is 1494.\
+The brevity and apparent simplicity of our analysis stem directly from the word limit of 1500 for this essay. Consequently, we have assumed a level of prior knowledge for our audience, focusing on illustrating our findings succinctly rather than exploring each concept in depth. This approach necessarily means that some nuances and complexities of the subject matter are taken for granted, with the expectation that our well-informed readers will appreciate the constraints under which we've operated.\
+In our analysis we have also briefly specified some policy implications of our findings in the concluding section. However, we are well aware that crafting informed policy recommendations requires a thorough examination of the relevant literature, along with efforts by experts from diverse fields.
+
+Lastly, we believe our initial insights may provide valuable directions and hopefully contribute to a broader movement towards quantifying economic and social sciences. Even as bachelor students, we hope to play a small but significant part in this journey, making these disciplines more rigorous and effective, ultimately benefiting society at large.
+
+## Bibliography
+
+1.  Coady, D. (2003). Alleviating structural poverty in developing countries: The approach of PROGRESA in Mexico. Food Consumption Nutrition Division International Food Policy Research Institute, February 2003.
+
+2.  Schultz, T. P. (2004). School subsidies for the poor: Evaluating the Mexican Progresa poverty program. Journal of Development Economics, 74, 199–250.
+
+3.  Gertler, Paul J., Sebastian Martinez, Patrick Premand, Laura B. Rawlings, and Christel M. J. Vermeersch. Impact Evaluation in Practice, Second Edition. Washington, D.C.: World Bank Group.
+
+4.  Skoufias, Emmanuel. (2005). PROGRESA and its impacts on the welfare of rural households in Mexico. Research Report Abstract. Open Access.
+
+5.  Imai, K. (2017). Quantitative Social Science: An Introduction. Princeton University Press.
+
+6.  Wickham, H., Çetinkaya-Rundel, M., & Grolemund, G. (2023). R for Data Science (2nd ed.). O’Reilly Media, Inc.
+
+7.  Stock, J. H., & Watson, M. W. (2020). Introduction to Econometrics (4th ed., Global Edition). Pearson.
