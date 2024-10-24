@@ -22,4 +22,4 @@ Progresa.R: The R script that contains the full analysis, including summary stat
 
 ProgresaEssay.qmd: A Quarto document providing a brief description of the analysis and key findings.
 
-Progresa.dta: Dataset used in the analysis
+Progresa.dta: Dataset used in the analysis.
