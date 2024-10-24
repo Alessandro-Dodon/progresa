@@ -11,10 +11,10 @@ suppressWarnings(suppressMessages({
   library(estimatr)
 }))
 
-# Load the .dta file (CHANGE THIS PATH IF YOU WANT TO TRY THE CALCULATIONS FOR YOURSELF)
-file_path <- "/Users/aledo/Desktop/Unibo/DSPA PROJECT/NEW PROJECT/dataset_per_essay/Progresa.dta"
+# Use a relative path
+file_path <- "./Progresa.dta"
 
-# Read the .dta file into an R data frame
+# Load the dataset
 dataset <- read_dta(file_path)
 
 ################################################################################

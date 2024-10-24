@@ -14,7 +14,6 @@ knitr:
     fig.align: "center"  # Center figures in output
 ---
 
-```{=html}
 <style>
 body {
   font-family: 'Times New Roman', Times, serif;
@@ -39,7 +38,6 @@ h1, h2, h3, h4 {
   font-family: 'MathJax_Main', 'Times New Roman', Times, serif !important;
 }
 </style>
-```
 
 ------------------------------------------------------------------------
 
@@ -101,10 +99,10 @@ suppressWarnings(suppressMessages({
   library(modelsummary)
 }))
 
-# Load the .dta file (CHANGE THIS PATH IF YOU WANT TO TRY THE CALCULATIONS FOR YOURSELF)
-file_path <- "/Users/aledo/Desktop/Unibo/DSPA PROJECT/NEW PROJECT/dataset_per_essay/Progresa.dta"
+# Use a relative path
+file_path <- "./Progresa.dta"
 
-# Read the .dta file into an R data frame
+# Load the dataset
 dataset <- read_dta(file_path)
 
 ################################################################################
