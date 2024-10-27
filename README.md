@@ -18,8 +18,8 @@ Difference-in-Differences (DiD): A quasi-experimental approach to estimate the c
 
 ## Files
 
-Progresa.R: The R script that contains the full analysis, including summary statistics, regression models (OLS, Logistic, IV), and DiD analysis (it can be rendered as an HTML file).
+Progresa.R: The R script that contains the full analysis, including summary statistics plus regression models (OLS, Logistic, IV and DiD).
 
-ProgresaEssay.qmd: A Quarto document providing a brief description of the analysis and key findings.
+ProgresaEssay.qmd: A Quarto document providing a brief description of the analysis and key findings (it can be rendered as an HTML file).
 
 Progresa.dta: Dataset used in the analysis.
