@@ -17,11 +17,12 @@ The analysis progresses through multiple stages, using various econometric techn
 **Difference-in-Differences (DiD)**: A quasi-experimental approach to estimate the causal effect of the program by comparing treated and control groups over time.
 
 ## Files
+
 ### `Progresa.R`
-- **Description:** R script containing the full analysis, including summary statistics and regression models (OLS, Logistic, IV, and DiD).
+ R script containing the full analysis, including summary statistics and regression models (OLS, Logistic, IV, and DiD).
 
 ### `ProgresaEssay.qmd`
-- **Description:** A Quarto document providing a concise overview of the analysis and key findings. Can be rendered as an HTML file.
+- A Quarto document providing a concise overview of the analysis and key findings. Can be rendered as an HTML file.
 
 ### `Progresa.dta`
-- **Description:** The dataset used in the analysis.
+- The dataset used in the analysis.
