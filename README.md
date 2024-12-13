@@ -19,7 +19,7 @@ The analysis progresses through multiple stages, using various econometric techn
 ## Files
 
 ### `Progresa.R`
- R script containing the full analysis, including summary statistics and regression models (OLS, Logistic, IV, and DiD).
+- R script containing the full analysis, including summary statistics and regression models (OLS, Logistic, IV, and DiD).
 
 ### `ProgresaEssay.qmd`
 - A Quarto document providing a concise overview of the analysis and key findings. Can be rendered as an HTML file.
