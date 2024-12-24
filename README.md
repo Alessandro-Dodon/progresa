@@ -1,4 +1,5 @@
 # Progresa Policy Analysis  
+## Overview
 
 This group project conducts a comprehensive policy analysis of the Progresa program, focusing on its impact on children's education outcomes. A variety of econometric methods are used to assess the effectiveness of the program.
 
@@ -26,3 +27,8 @@ The analysis progresses through multiple stages, using various econometric techn
 
 ### `Progresa.dta`
 - The dataset used in the analysis.
+
+## User guide
+
+The Progresa.dta file must be downloaded and placed in the same directory as the scripts since the working directory is set to a relative path. The Progresa.R script is self-contained and will run automatically. If any required packages are missing, simply remove the # at the start of the install.packages() lines in the script to install them. The ProgresaEssay.qmd file can be rendered to an HTML file, and it will work seamlessly as long as R and Quarto are installed.
+
