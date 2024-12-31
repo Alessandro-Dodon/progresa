@@ -1,6 +1,6 @@
 # Progresa Policy Analysis  
 
-This group project conducts a comprehensive policy analysis of the Progresa program, focusing on its impact on children's education outcomes. A variety of econometric methods are used to assess the effectiveness of the program.
+This group project conducts a comprehensive policy analysis of the Progresa program, focusing on its impact on children's education outcomes. A variety of econometric methods are used to assess the effectiveness of the program. This is a well-known policy intervention in applied microeconomics and economics of education.
 
 ## Methodology
 
