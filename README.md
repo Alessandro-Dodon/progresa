@@ -6,15 +6,15 @@ This group project conducts a comprehensive policy analysis of the Progresa prog
 
 The analysis progresses through multiple stages, using various econometric techniques to understand the impact of the Progresa program:
 
-**Summary Statistics**: Provides an overview of the key variables and characteristics of the dataset.
+- **Summary Statistics**: Provides an overview of the key variables and characteristics of the dataset.
 
-**Ordinary Least Squares (OLS)**: A basic regression model to estimate the effect of the program on educational outcomes.
+- **Ordinary Least Squares (OLS)**: A basic regression model to estimate the effect of the program on educational outcomes.
 
-**Logistic Regression**: A model used to analyze binary outcomes, such as school attendance.
+- **Logistic Regression**: A model used to analyze binary outcomes, such as school attendance.
 
-**Instrumental Variables (IV)**: Used to address potential endogeneity in the data.
+- **Instrumental Variables (IV)**: Used to address potential endogeneity in the data.
 
-**Difference-in-Differences (DiD)**: A quasi-experimental approach to estimate the causal effect of the program by comparing treated and control groups over time.
+- **Difference-in-Differences (DiD)**: A quasi-experimental approach to estimate the causal effect of the program by comparing treated and control groups over time.
 
 ## Files
 
