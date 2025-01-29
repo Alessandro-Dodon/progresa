@@ -14,6 +14,7 @@ knitr:
     fig.align: "center"  # Center figures in output
 ---
 
+```{=html}
 <style>
 body {
   font-family: 'Times New Roman', Times, serif;
@@ -38,6 +39,7 @@ h1, h2, h3, h4 {
   font-family: 'MathJax_Main', 'Times New Roman', Times, serif !important;
 }
 </style>
+```
 
 ------------------------------------------------------------------------
 
