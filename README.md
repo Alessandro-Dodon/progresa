@@ -18,7 +18,7 @@ The analysis progresses through multiple stages, using various econometric techn
 
 ## Files
 
-**`ProgresaEssay.qmd`** A Quarto document providing a concise overview of the analysis and key findings. Can be rendered as an HTML file.
+**`ProgresaEssay.qmd`** A Quarto document providing a concise overview of the analysis and key findings. Can be rendered as an HTML file. Code is obviously included.
 
 **`Progresa.dta`** The dataset used in the analysis.
 
