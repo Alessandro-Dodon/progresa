@@ -30,8 +30,23 @@ Below is an example of the results. The image shows the results of the DiD manua
 
 ## User Guide
 
-The `Progresa.dta` file must be downloaded and placed in the same directory as the scripts since the working directory is set to a relative path. The `ProgresaEssay.qmd` file can be rendered to an HTML file, and it will work seamlessly as long as R and Quarto (and necessary dependencies) are installed.
+## User Guide
 
+1. **Setup**:
+   - Ensure R and Quarto are installed.
+   - Download the `Progresa.dta` file and place it in the same directory as the scripts (a relative path is used).
+   - Quarto requires additional dependencies such as Pandoc and LaTeX (for PDF rendering). Ensure these are installed if needed.
+
+2. **Execution**:
+   - Render the `ProgresaEssay.qmd` file to an HTML file using Quarto, or alternatively run it chunk by chunk.
+
+3. **Packages**:
+   - All required packages are loaded at the beginning of the `.qmd` file for easy reference.
+   - If any packages are missing, install them by running the following command in the R console or terminal:
+     ```r
+     install.packages("package_name")
+     ```
+     
 ## Contacts
 For any clarifications, questions, or to report issues with the code, feel free to reach out via email at alessandro.dodon@usi.ch. You can also find my LinkedIn link in my GitHub bio.
 
