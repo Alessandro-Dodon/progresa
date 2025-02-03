@@ -22,6 +22,12 @@ The analysis progresses through multiple stages, using various econometric techn
 
 **`Progresa.dta`** The dataset used in the analysis.
 
+## Results Example
+
+Below is an example of the results. The image shows the results of the DiD manually constructed (later also done via regression). In both cases, the effect of the treatment on the enrollment status of children is positive. For further details and insights, please refer to the qmd file.
+
+![DiD](DiD.png)
+
 ## User Guide
 
 The `Progresa.dta` file must be downloaded and placed in the same directory as the scripts since the working directory is set to a relative path. The `ProgresaEssay.qmd` file can be rendered to an HTML file, and it will work seamlessly as long as R and Quarto (and necessary dependencies) are installed.
