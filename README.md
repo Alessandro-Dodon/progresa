@@ -30,15 +30,22 @@ Below is an example of the results. The image shows the results of the DiD manua
 
 ## User Guide
 
-1. **Setup**:
-   - Ensure R and Quarto are installed.
-   - Download the `Progresa.dta` file and place it in the same directory as the scripts (a relative path is used).
-   - Quarto requires additional dependencies such as Pandoc and LaTeX (for PDF) and a web browser (for HTML rendering). Ensure these are installed if needed by running the following in the R console:
+1. **Setup**:  
+   - Clone the repository (Recommended):  
+     ```bash
+     git clone https://github.com/Alessandro-Dodon/Progresa.git
+     cd Progresa
+     ```
+   - Download as ZIP (Alternative):  
+     Click the **"Code"** button (green) at the top of the repository page, select **"Download ZIP"**, extract the files, and place them in your working directory.  
+   - Make sure the `Progresa.dta` file is in the same working directory as the scripts (a relative path is used).  
+   - Ensure R and Quarto are installed.  
+   - Quarto requires additional dependencies such as Pandoc and LaTeX (for PDF) and a web browser (for HTML rendering). Ensure these are installed if needed by running the following in the R console:  
      ```r
      install.packages("tinytex")  # Install the TinyTeX package
      tinytex::install_tinytex()    # Install TinyTeX (LaTeX distribution)
      ```
-     Quarto **already includes Pandoc**, so no separate installation is required.
+     Quarto **already includes Pandoc**, so no separate installation is required.  
 
 2. **Execution**:
    - Render the `ProgresaEssay.qmd` file to an HTML file using Quarto, or alternatively run it chunk by chunk.
