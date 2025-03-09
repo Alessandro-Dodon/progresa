@@ -47,7 +47,7 @@ h1, h2, h3, h4 {
 
 Progresa has been one of the major government programs undertaken by Mexico, aimed at developing the human capital of the country. The program targeted rural and poor households, covering approximately 2.6 million families in almost 50,000 localities and more than 2,000 municipalities. These beneficiaries comprised about 40% of all rural families, or one-ninth of all Mexican families and the budget was of about 777 millions, equal to 0.2 % of Mexico’s GDP. Communities were first selected based on a poverty index, and within those communities, specific households are selected through socio-economic data. The Progresa program consisted on delivering cash transfers to mothers, depending on their children’s school attendances and visits to healthcare centers. Investigating the program is crucial to determine if intentional government interventions more effectively develop human capital than isolated actions.
 
-Our study, an ex-post policy analysis reflecting the ongoing relevance of the topic, investigates Progresa's impact on children's school enrollment via regression analysis. By using methods such as simple differences, linear, multiple and logistic regressions, as well as IV and DiD our results consistently show a positive impact on enrollment rates.\
+Our study, an ex-post policy analysis reflecting the ongoing relevance of the topic, investigates Progresa's impact on children's school enrollment via regression analysis. By using methods such as simple differences, simple linear, multiple and logistic regressions, as well as IV and DiD our results consistently show a positive impact on enrollment rates.\
 We will first start by introducing our data, briefly explaining the methods, illustrate our results, and finally underline our major findings, limitations and technical details.\
 For each step, the codes will be shown in a "code-fold mode", so if the viewer is interested the calculations can be checked directly.
 
@@ -665,7 +665,7 @@ The coefficient β1 quantifies the expected change in the outcome variable Y for
 Indeed, with linear models, we are not capable of expressing our results in a probabilistic way, thus interpreting a coefficient in terms of increase or decrease of % probability in school enrollment would be incorrect. The appropriate interpretation would be that, according to that particular regression, the treatment group experiences, on average, an increase of XYZ points in school enrollment compared to the control group, all other things being equal.\
 Also, linear regression models applied to binary variables can produce predicted values outside the meaningful range of 0 to 1, and violate key model assumptions such as the continuity of the dependent variable, leading to potential issues with heteroskedasticity and invalid standard errors. Because of this we added a logistic regression.\
 Only with our logistic regression, when estimating the odds (by calculating the exponential), we can express an increase or decrease in probability of school enrollment.\
-Here, in addition, is a brief list of our regression formulas (respectively those are the linear, multivariate, logistic and DiD):
+Here, in addition, is a brief list of our regression formulas (respectively those are the simple linear, multiple, logistic and DiD):
 
 $$
 \text{enroll\_child} = \beta_0 + \beta_1(\text{D\_HH}) + \epsilon
