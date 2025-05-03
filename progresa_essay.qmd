@@ -102,7 +102,7 @@ suppressWarnings(suppressMessages({
 }))
 
 # Use a relative path
-file_path <- "./Progresa.dta"
+file_path <- "./progresa.dta"
 
 # Load the dataset
 dataset <- read_dta(file_path)

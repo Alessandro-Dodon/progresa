@@ -18,9 +18,9 @@ The analysis progresses through multiple stages, using various econometric techn
 
 ## Files
 
-**`ProgresaEssay.qmd`** A Quarto document providing a concise overview of the analysis and key findings. Can be rendered as an HTML file. Code is obviously included.
+**`progresa_essay.qmd`** A Quarto document providing a concise overview of the analysis and key findings. Can be rendered as an HTML file. Code is obviously included.
 
-**`Progresa.dta`** The dataset used in the analysis.
+**`progresa.dta`** The dataset used in the analysis.
 
 ## Results Example
 
@@ -38,7 +38,7 @@ Below is an example of the results. The image shows the results of the DiD manua
      ```
    - Download as ZIP (Alternative):  
      Click the **"Code"** button (green) at the top of the repository page, select **"Download ZIP"**, extract the files, and place them in your working directory.  
-   - Make sure the `Progresa.dta` file is in the same working directory as the scripts (a relative path is used).  
+   - Make sure the `progresa.dta` file is in the same working directory as the scripts (a relative path is used).  
    - Ensure R and Quarto are installed.  
    - Quarto requires additional dependencies such as Pandoc and LaTeX (for PDF) and a web browser (for HTML rendering). Ensure these are installed if needed by running the following in the R console:  
      ```r
@@ -48,7 +48,7 @@ Below is an example of the results. The image shows the results of the DiD manua
      Quarto **already includes Pandoc**, so no separate installation is required.  
 
 2. **Execution**:
-   - Render the `ProgresaEssay.qmd` file to an HTML file using Quarto, or alternatively run it chunk by chunk.
+   - Render the `progresa_essay.qmd` file to an HTML file using Quarto, or alternatively run it chunk by chunk.
 
 3. **Packages**:
    - All required packages are loaded at the beginning of the `.qmd` file for easy reference.
