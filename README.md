@@ -26,7 +26,7 @@ The analysis progresses through multiple stages, using various econometric techn
 
 Below is an example of the results. The image shows the results of the DiD manually constructed (later also done via regression). In both cases, the effect of the treatment on the enrollment status of children is positive. For further details and insights, please refer to the qmd file.
 
-![DiD](DiD.png)
+![DiD](did.png)
 
 ## User Guide
 
