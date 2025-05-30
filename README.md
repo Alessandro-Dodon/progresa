@@ -57,6 +57,6 @@ Below is an example of the results. The image shows the results of the DiD manua
      install.packages("package_name")
      ```
      
-## Contacts
+## Contact
 For any clarifications, questions, or to report issues with the code, feel free to reach out via email at alessandro.dodon@usi.ch. You can also find my LinkedIn link in my GitHub bio.
 
