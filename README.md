@@ -33,8 +33,8 @@ Below is an example of the results. The image shows the results of the DiD manua
 1. **Setup**:  
    - Clone the repository (Recommended):  
      ```bash
-     git clone https://github.com/Alessandro-Dodon/Progresa.git
-     cd Progresa
+     git clone https://github.com/Alessandro-Dodon/progresa.git
+     cd progresa
      ```
    - Download as ZIP (Alternative):  
      Click the **"Code"** button (green) at the top of the repository page, select **"Download ZIP"**, extract the files, and place them in your working directory.  
